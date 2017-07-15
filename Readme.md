@@ -18,10 +18,10 @@ Once the server has been started, please navigate to http://localhost:8011
 to view the completed assignment.
 
 
-I have followed the basic MV* observable pattern to complete this project and have not used
-any pre-built frameworks for the same. I have created a Notifcations class which maintain all
-the subscriptions for all event types and is also responsible to closing/firing any subscription
-thus notifying the callback.
+This project is built on the basic MV* observable pattern and does not uses any pre-built 
+frameworks for the same. 
+There is a Notifcations class which maintain all the subscriptions for different event-types 
+and is also responsible to creating/closing/firing any subscription thus notifying the callback.
 There is one BaseModel class which acts as a decorator for all messages, adding some methods whenever
 a message is added to the collection. 
 The BaseCollection is collection of all messages(models) which is responsible for updating view and 
