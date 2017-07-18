@@ -83,9 +83,13 @@ td:nth-child(1) {
   border-color: #5f5f6b;
 }
 
+.footer {
+  justify-content: space-between;
+  margin-top: 1.2rem;
+}
+
 .play-pause {
   justify-content: flex-end;
-  margin-top: 1.2rem;
 }
 
 .play-pause.stop .play {
@@ -94,4 +98,24 @@ td:nth-child(1) {
 
 .play-pause.stop .pause {
   display: none;
+}
+
+.server-status {
+  font-size: 1.2rem;
+}
+
+.server-status div:before {
+  border-radius: 0.4rem;
+  content: '';
+  height: 0.8rem;
+  margin-right: 0.8rem;
+  width: 0.8rem;
+}
+
+.server-status__success:before {
+  background-color: #20b796;
+}
+
+.server-status__error:before {
+  background-color: #ff6060;
 }

@@ -4,6 +4,22 @@ const BaseModel = require('./BaseModel');
 const util = require('util');
 
 /**
+ * URL location of server
+ *
+ * @private
+ * @type {String}
+ */
+const SERVER_URL = "ws://localhost:8011/stomp";
+
+/**
+ * Number of milliseconds to wait before attempting to connect to server again.
+ *
+ * @private
+ * @type {Number}
+ */
+const WAIT_TIME = 5000;
+
+/**
  * Initializes collection and starts listening to server for updates, then accoringly notifies view.
  *
  * @constructor
@@ -11,8 +27,7 @@ const util = require('util');
  */
 class BaseCollection {
   constructor({ message, Notifications }) {
-    const url = this.url = "ws://localhost:8011/stomp";
-    const client = this.client = Stomp.client(url);
+    const url = this.url = SERVER_URL;
 
     /** @public */
     this.Notifications = Notifications;
@@ -25,18 +40,43 @@ class BaseCollection {
       this.models = [];
     }
 
-    client.debug = msg => console.info(msg);
-    client.connect({},
-      () => {
-        util.log('Successfully connected to the server.');
-        this.susbscribe();
-      },
-      () => {
-        util.log('Failed to connect to the server.');
-      });
+    this.connect();
 
     Notifications.subscribe('server:start', this.susbscribe.bind(this));
     Notifications.subscribe('server:stop', this.unsubscribe.bind(this));
+    Notifications.subscribe('server:connect', this.connect.bind(this));
+  }
+
+  /**
+   * Performs connection to server and if failed, tries to reconnect.
+   *
+   * @this   {BaseCollection}
+   * @return {Object}         Acknowledgement object
+   */
+  connect() {
+    const { Notifications } = this;
+    const { url } = this;
+    const client = this.client = Stomp.client(url);
+    let attemptsMade = 1;
+
+    client.debug = msg => console.info(msg);
+    return client.connect({},
+      frame => {
+        util.log('Successfully connected to the server.');
+
+        attemptsMade = 1;
+        this.susbscribe();
+        Notifications.trigger('server:sucess', true);
+      },
+      message => {
+        const timeout = attemptsMade * WAIT_TIME;
+        util.log(`Failed to connect to the server due to ${message}.`);
+
+        this.unsubscribe();
+        setTimeout(this.connect, timeout);
+        Notifications.trigger('server:error', false, timeout);
+        attemptsMade++;
+      });
   }
 
   /**

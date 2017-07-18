@@ -2,6 +2,14 @@ const Notifications = require('./Notifications');
 const util = require('util');
 
 /**
+ * Number of milliseconds in one second.
+ *
+ * @private
+ * @type {Number}
+ */
+const ONE_SECOND_IN_MILLIS = 1000;
+
+/**
  * Sorts the messages in ascending order according to lastChangeBid.
  *
  * @private
@@ -80,8 +88,13 @@ class BaseView {
     this.Notifications = Notifications;
 
     this.startSubscription();
+
     document.querySelector('.play').addEventListener('click', this.startSubscription.bind(this));
     document.querySelector('.pause').addEventListener('click', this.stopSubscription.bind(this));
+
+    //Listen to notifications for server connection and accordingly show in DOM
+    Notifications.subscribe('server:sucess', this.setServerStatus.bind(this));
+    Notifications.subscribe('server:error', this.setServerStatus.bind(this));
   }
 
   /**
@@ -89,7 +102,7 @@ class BaseView {
    *
    * this    {BaseView}
    * @param  {Array}    messges Colelction of message models
-   * @return {Boolean}          Boolean value notifying if the view update was successful or not
+   * @return {Boolean}          Boolean value notifying if the updation of view was successful or not
    */
   render(messges) {
     if(!messges) {
@@ -101,6 +114,48 @@ class BaseView {
     document.querySelector('.table-body').innerHTML = tableHeader + sortedMessages.reduce(getTableRow, '');
     sortedMessages.forEach(drawLine);
     return true;
+  }
+
+  /**
+   * [setServerStatus description]
+   *
+   * this    {BaseView}
+   * @param  {Boolean}  success          Boolean flag to accordingly update DOM for server status
+   * @param  {Number}   waitTimeInMillis Number of millisecons to before the collection will re-attempt for connection
+   * @return {Boolean}                   Boolean value notifying if connection to server was successful or not
+   */
+  setServerStatus(success, waitTimeInMillis) {
+    const successEl = document.querySelector('.server-status__success');
+    const errorEl = document.querySelector('.server-status__error');
+
+    if(success) {
+      successEl.classList.remove('hide');
+      errorEl.classList.add('hide');
+      return success;
+    }
+
+    if(!success) {
+      successEl.classList.add('hide');
+      errorEl.classList.remove('hide');
+
+      let secondsLeft = (waitTimeInMillis / ONE_SECOND_IN_MILLIS);
+
+      errorEl.innerHTML = `Server Status: Connection Error, Reconnecting in ${secondsLeft} seconds...`;
+      secondsLeft--;
+
+      const reconnectMsgInv = setInterval(() => {
+        if(secondsLeft > 0) {
+          errorEl.innerHTML = `Server Status: Connection Error, Reconnecting in ${secondsLeft} seconds...`;
+          secondsLeft--;
+        } else {
+          clearInterval(reconnectMsgInv);
+          errorEl.innerHTML = `Server Status: Connection Error, Reconnecting...`;
+          Notifications.trigger('server:connect');
+        }
+      }, ONE_SECOND_IN_MILLIS);
+
+      return !success;
+    }
   }
 
   /**
